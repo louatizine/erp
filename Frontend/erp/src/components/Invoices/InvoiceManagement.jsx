@@ -28,7 +28,7 @@ import {
   Divider,
   IconButton
 } from "@mui/material";
-import { Search, CheckCircle, HourglassEmpty, Cancel as CancelIcon } from "@mui/icons-material";
+import { Search, CheckCircle, HourglassEmpty, Cancel as CancelIcon, Email } from "@mui/icons-material";
 import axios from "axios";
 
 const SIDEBAR_WIDTH = 240;
@@ -73,6 +73,23 @@ const InvoiceManagement = () => {
       fetchInvoices();
     } catch (error) {
       console.error("Error updating status:", error.response?.data || error);
+    }
+  };
+
+  const handleSendReminder = async (invoice) => {
+    try {
+      await axios.post(
+        `http://localhost:5000/api/invoices/send-reminder/${invoice._id}`,
+        {
+          client_email: invoice.client_email,
+          invoice_number: invoice.invoice_number,
+          total_amount: invoice.total_amount
+        }
+      );
+      alert("Rappel envoyé avec succès!");
+    } catch (error) {
+      console.error("Error sending reminder:", error);
+      alert("Erreur lors de l'envoi du rappel");
     }
   };
 
@@ -183,7 +200,7 @@ const InvoiceManagement = () => {
           <Table stickyHeader>
             <TableHead>
               <TableRow sx={{ backgroundColor: "#f1f5f9" }}>
-                <TableCell sx={{ fontWeight: 600 }}>Entreprise</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>N° Facture</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Client</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Téléphone</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Total</TableCell>
@@ -218,7 +235,7 @@ const InvoiceManagement = () => {
                       }
                     }}
                   >
-                    <TableCell>{invoice?.company_email || "-"}</TableCell>
+                    <TableCell>{invoice?.invoice_number || "-"}</TableCell>
                     <TableCell>{invoice?.client_email || "-"}</TableCell>
                     <TableCell>{invoice?.telephone || "-"}</TableCell>
                     <TableCell>{invoice?.total_amount ? `${invoice.total_amount} Dt` : "-"}</TableCell>
@@ -251,23 +268,47 @@ const InvoiceManagement = () => {
 
                     <TableCell align="center">
                       <Stack direction="row" spacing={1} justifyContent="center">
-                        <Tooltip title="Marquer comme payé">
-                          <Button
-                            size="small"
-                            variant="contained"
-                            color="success"
-                            startIcon={<CheckCircle />}
-                            onClick={() => handleStatusUpdate(invoice._id, "paid")}
-                            sx={{ 
-                              borderRadius: 1,
-                              textTransform: 'none',
-                              backgroundColor: "#16a34a",
-                              '&:hover': { backgroundColor: "#15803d" }
-                            }}
-                          >
-                            Payé
-                          </Button>
-                        </Tooltip>
+                        {invoice.status !== "paid" && (
+                          <>
+                            <Tooltip title="Marquer comme payé">
+                              <Button
+                                size="small"
+                                variant="contained"
+                                color="success"
+                                startIcon={<CheckCircle />}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStatusUpdate(invoice._id, "paid");
+                                }}
+                                sx={{ 
+                                  borderRadius: 1,
+                                  textTransform: 'none',
+                                  backgroundColor: "#16a34a",
+                                  '&:hover': { backgroundColor: "#15803d" }
+                                }}
+                              >
+                                Payé
+                              </Button>
+                            </Tooltip>
+                            <Tooltip title="Envoyer un rappel">
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                color="primary"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleSendReminder(invoice);
+                                }}
+                                sx={{ 
+                                  borderRadius: 1,
+                                  textTransform: 'none'
+                                }}
+                              >
+                                Rappel
+                              </Button>
+                            </Tooltip>
+                          </>
+                        )}
                       </Stack>
                     </TableCell>
                   </TableRow>

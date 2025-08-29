@@ -14,19 +14,18 @@ def create_invoice():
         data = request.get_json()
         
         # Validate required fields
-        required_fields = ['company_email', 'client_email', 'telephone', 'total_amount']
+        required_fields = ['invoice_number', 'client_email', 'telephone', 'total_amount']
         for field in required_fields:
             if not data.get(field):
                 return jsonify({"error": f"Missing required field: {field}"}), 400
         
         # Create invoice document
         invoice_doc = {
-            "company_email": data['company_email'],
+            "invoice_number": data['invoice_number'],
             "client_email": data['client_email'],
             "telephone": data['telephone'],
             "total_amount": float(data['total_amount']),
-            "invoice_date": data.get('invoice_date', datetime.utcnow()),
-            "payment_date": data.get('payment_date'),
+            "invoice_date": data.get('invoice_date', datetime.utcnow().strftime("%Y-%m-%d")),
             "status": data.get('status', 'pending')
         }
         
@@ -43,9 +42,6 @@ def create_invoice():
             "success": False,
             "error": str(e)
         }), 500
-
-
-
 
 @invoice_bp.route("/list", methods=["GET"])
 def list_invoices():
@@ -78,7 +74,6 @@ def list_invoices():
                     invoice['payment_date'] = invoice['payment_date'].isoformat()
                 else:
                     invoice['payment_date'] = str(invoice['payment_date'])
-
         return jsonify({
             "success": True,
             "invoices": invoices,
@@ -115,6 +110,43 @@ def update_invoice_status(invoice_id):
             return jsonify({"error": "Invoice not found or status unchanged"}), 404
 
         return jsonify({"success": True})
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@invoice_bp.route("/send-reminder/<invoice_id>", methods=["POST"])
+def send_payment_reminder(invoice_id):
+    try:
+        invoice_data = request.get_json()
+        client_email = invoice_data.get('client_email')
+        invoice_number = invoice_data.get('invoice_number')
+        total_amount = invoice_data.get('total_amount')
+
+        if not all([client_email, invoice_number, total_amount]):
+            return jsonify({"error": "Missing required fields"}), 400
+
+        subject = f"Rappel de paiement - Facture #{invoice_number}"
+        body = f"""
+Cher client,
+
+Ceci est un rappel concernant la facture #{invoice_number} d'un montant de {total_amount} Dt qui est actuellement en attente de paiement.
+
+Nous vous prions de bien vouloir procéder au règlement dans les plus brefs délais.
+
+Cordialement,
+Dynamix Services
+"""
+        
+        from ..utils.email_utils import send_email
+        success = send_email(client_email, subject, body)
+
+        if not success:
+            return jsonify({"error": "Failed to send email reminder"}), 500
+
+        return jsonify({"success": True, "message": "Payment reminder sent successfully"})
 
     except Exception as e:
         return jsonify({

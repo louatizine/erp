@@ -15,7 +15,7 @@ import { Save, Email, Phone } from "@mui/icons-material";
 
 export default function InvoiceForm() {
   const [formData, setFormData] = useState({
-    company_email: "",
+    invoice_number: "",
     client_email: "",
     telephone: "",
     total_amount: "",
@@ -64,7 +64,7 @@ export default function InvoiceForm() {
 
       setSuccess(true);
       setFormData({
-        company_email: "",
+        invoice_number: "",
         client_email: "",
         telephone: "",
         total_amount: "",
@@ -140,23 +140,23 @@ export default function InvoiceForm() {
                   gap: 1,
                 }}
               >
-                Courriel de l'entreprise
+                Numéro de facture
               </Typography>
               <Divider sx={{ mb: 3, borderColor: "#e2e8f0" }} />
 
               <TextField
                 fullWidth
-                label="Courriel de l'entreprise"
-                type="email"
-                value={formData.company_email}
+                label="Numéro de facture"
+                type="text"
+                value={formData.invoice_number}
                 onChange={(e) =>
-                  handleInputChange("company_email", e.target.value)
+                  handleInputChange("invoice_number", e.target.value)
                 }
                 required
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <Email sx={{ color: "#64748b" }} />
+                      #
                     </InputAdornment>
                   ),
                 }}
