@@ -1,0 +1,10 @@
+Flask
+pytesseract
+Pillow
+python-dotenv
+pymongo
+pandas
+langchain
+langchain_groq
+flask-cors
+pytest
