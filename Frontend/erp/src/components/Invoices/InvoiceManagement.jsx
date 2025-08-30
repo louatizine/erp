@@ -26,7 +26,9 @@ import {
   DialogTitle,
   DialogContent,
   Divider,
-  IconButton
+  IconButton,
+  Snackbar,
+  Alert
 } from "@mui/material";
 import { Search, CheckCircle, HourglassEmpty, Cancel as CancelIcon, Email } from "@mui/icons-material";
 import axios from "axios";
@@ -40,6 +42,11 @@ const InvoiceManagement = () => {
   const [loading, setLoading] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success"
+  });
 
   const fetchInvoices = React.useCallback(async () => {
     try {
@@ -76,6 +83,10 @@ const InvoiceManagement = () => {
     }
   };
 
+  const handleCloseSnackbar = () => {
+    setSnackbar(prev => ({ ...prev, open: false }));
+  };
+
   const handleSendReminder = async (invoice) => {
     try {
       await axios.post(
@@ -86,10 +97,18 @@ const InvoiceManagement = () => {
           total_amount: invoice.total_amount
         }
       );
-      alert("Rappel envoyé avec succès!");
+      setSnackbar({
+        open: true,
+        message: "Le rappel de paiement a été envoyé avec succès!",
+        severity: "success"
+      });
     } catch (error) {
       console.error("Error sending reminder:", error);
-      alert("Erreur lors de l'envoi du rappel");
+      setSnackbar({
+        open: true,
+        message: "Erreur lors de l'envoi du rappel de paiement",
+        severity: "error"
+      });
     }
   };
 
@@ -458,6 +477,34 @@ const InvoiceManagement = () => {
           )}
         </Dialog>
       </Paper>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert
+          onClose={handleCloseSnackbar}
+          severity={snackbar.severity}
+          variant="filled"
+          sx={{
+            width: '100%',
+            borderRadius: 2,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            '& .MuiAlert-icon': {
+              fontSize: '24px'
+            },
+            '& .MuiAlert-message': {
+              fontSize: '1rem',
+              fontWeight: 500
+            }
+          }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

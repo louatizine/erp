@@ -79,8 +79,8 @@ def start_scheduler(app):
     scheduler.add_job(
         func=lambda: check_expiring_documents_with_context(app),
         trigger='cron',
-        hour=11,
-        minute=37,
+        hour=18,
+        minute=4,
         id="vehicle_docs_check"
     )
 
@@ -88,8 +88,8 @@ def start_scheduler(app):
     scheduler.add_job(
         func=lambda: notify_admins_about_expiring_licenses_with_context(app),
         trigger='cron',
-        hour=11,
-        minute=37,
+        hour=18,
+        minute=4,
         id="license_check"
     )
 
@@ -97,8 +97,8 @@ def start_scheduler(app):
     scheduler.add_job(
         func=lambda: notify_due_tasks_with_context(app),
         trigger='cron',
-        hour=11,
-        minute=37,
+        hour=18,
+        minute=4,
         id="todo_due_check"
     )
 

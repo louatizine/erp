@@ -4,13 +4,13 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { styled, useTheme, alpha } from "@mui/material/styles";
 import {
   Drawer,
-  List,
   ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
   Divider,
   Box,
+  List,
   Typography,
   Collapse,
   Avatar,
@@ -33,6 +33,7 @@ import {
   WorkHistoryOutlined as LeaveManageIcon,
 } from "@mui/icons-material";
 import { useAuth } from "./Auth/AuthContext";
+import dynamixLogo from "../assets/dynamix.jpg";
 
 // ------------------- Styled Components -------------------
 const StyledDrawer = styled(Drawer)(({ theme }) => ({
@@ -87,19 +88,21 @@ const SectionTitle = styled(Typography)(({ theme }) => ({
   },
 }));
 
-const StyledListItemButton = styled(ListItemButton)(({ theme }) => ({
+const StyledListItemButton = styled(ListItemButton)(({ theme, nested }) => ({
   borderRadius: 8,
-  margin: theme.spacing(0.3, 1),
+  margin: theme.spacing(0.3, nested ? 0.5 : 1),
+  marginLeft: nested ? theme.spacing(2) : theme.spacing(1),
   padding: theme.spacing(1, 1.5),
   fontWeight: 500,
-  color: theme.palette.text.secondary,
+  color: nested ? '#4B5563' : theme.palette.text.secondary,
   transition: "all 0.2s ease",
+  background: nested ? alpha('#F3F4F6', 0.5) : 'transparent',
   "&.Mui-selected": {
-    backgroundColor: alpha("#2563eb", 0.08),
-    color: "#2563eb",
+    backgroundColor: nested ? alpha('#7C3AED', 0.08) : alpha("#2563eb", 0.08),
+    color: nested ? '#7C3AED' : '#2563eb',
     transform: "scale(1.02)",
     "& .MuiListItemIcon-root": {
-      color: "#2563eb",
+      color: nested ? '#7C3AED' : '#2563eb',
     },
     "&:before": {
       content: '""',
@@ -109,22 +112,26 @@ const StyledListItemButton = styled(ListItemButton)(({ theme }) => ({
       transform: "translateY(-50%)",
       height: "60%",
       width: 3,
-      backgroundColor: "#2563eb",
+      backgroundColor: nested ? '#7C3AED' : '#2563eb',
       borderRadius: "0 4px 4px 0",
     },
   },
   "&:hover": {
-    backgroundColor: alpha("#2563eb", 0.05),
-    color: "#2563eb",
+    backgroundColor: nested ? alpha('#7C3AED', 0.05) : alpha("#2563eb", 0.05),
+    color: nested ? '#7C3AED' : '#2563eb',
     transform: "scale(1.02)",
     "& .MuiListItemIcon-root": {
-      color: "#2563eb",
+      color: nested ? '#7C3AED' : '#2563eb',
       transform: "scale(1.1)",
     },
   },
   "& .MuiListItemIcon-root": {
     transition: "transform 0.2s ease",
+    color: nested ? '#6B7280' : 'inherit',
   },
+  "& .MuiTypography-root": {
+    fontSize: nested ? "0.85rem" : "0.88rem",
+  }
 }));
 
 const DropdownHeader = styled(ListItemButton)(({ theme, open }) => ({
@@ -242,13 +249,13 @@ function Navigation() {
     }
   }, [user, authLoading, navigate]);
 
-  const renderMenuItem = ({ path, label, icon, badge }) => (
+  const renderMenuItem = ({ path, label, icon, badge, nested = true }) => (
     <ListItem key={path} disablePadding>
-      <StyledListItemButton component={Link} to={path} selected={isSelected(path)}>
+      <StyledListItemButton component={Link} to={path} selected={isSelected(path)} nested={nested}>
         <ListItemIcon sx={{ minWidth: 36, color: "inherit" }}>
           {badge ? <Badge badgeContent={badge} color="primary">{icon}</Badge> : icon}
         </ListItemIcon>
-        <ListItemText primary={label} primaryTypographyProps={{ fontSize: "0.88rem", fontWeight: 500 }} />
+        <ListItemText primary={label} primaryTypographyProps={{ fontWeight: 500 }} />
       </StyledListItemButton>
     </ListItem>
   );
@@ -293,7 +300,7 @@ function Navigation() {
     <StyledDrawer variant="permanent" anchor="left">
       {/* Logo */}
       <LogoBox>
-        <img src="/dynamix.jpg" alt="Dynamix Services Logo" />
+        <img src={dynamixLogo} alt="Dynamix Services Logo" />
       </LogoBox>
 
       {/* Menu */}
@@ -302,7 +309,7 @@ function Navigation() {
           {roles.includes("admin") && (
             <>
               <SectionTitle>Administration</SectionTitle>
-              {menuConfig.admin.map((item) => renderMenuItem(item))}
+              {menuConfig.admin.map((item) => renderMenuItem({ ...item, nested: false }))}
               <SectionTitle>Gestion</SectionTitle>
               {renderDropdownMenu("users", <UsersIcon />)}
               {renderDropdownMenu("invoices", <InvoiceIcon />)}
@@ -313,24 +320,23 @@ function Navigation() {
           {roles.includes("user") && (
             <>
               <SectionTitle>Utilisateur</SectionTitle>
-              {menuConfig.user.map((item) => renderMenuItem(item))}
+              {menuConfig.user.map((item) => renderMenuItem({ ...item, nested: false }))}
             </>
           )}
         </List>
       </MenuListContainer>
 
-      {/* User Card */}
-      <UserCard>
+{/*       <UserCard>
         <Avatar alt={user.name} src={user.avatar} />
         <Box ml={1}>
           <Typography variant="body2" fontWeight={600}>
             {user.name || "Utilisateur"}
           </Typography>
-{/*           <Typography variant="caption" color="text.secondary">
+           <Typography variant="caption" color="text.secondary">
             {roles.length > 0 ? roles.join(", ") : "Aucun rôle"}
-          </Typography> */}
+          </Typography> 
         </Box>
-      </UserCard>
+      </UserCard> */}
 
       {/* Logout */}
       <Box sx={{ px: 2, pb: 2, flexShrink: 0 }}>

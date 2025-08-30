@@ -50,7 +50,9 @@ def get_leave_balance(employee_id):
     return max(round(balance, 2), 0)
 
 def submit_leave_request(employee_id, start_date, end_date, leave_type, reason=None, document_path=None):
-    """Submit a new leave request with validation"""
+    """Submit a new leave request with validation and admin notification"""
+    from ..utils.admin_notifications import send_admin_leave_notification
+    
     employees = get_employee_collection()
     leave_requests = get_leave_collection()
     
@@ -82,6 +84,9 @@ def submit_leave_request(employee_id, start_date, end_date, leave_type, reason=N
     if existing_leave:
         raise Exception("Existing leave request overlaps with this period")
     
+    # Get employee information for the notification
+    employee_info = employees.find_one({"_id": employee_id_obj})
+    
     leave_request = {
         "employee_id": employee_id_obj,
         "start_date": start_date,
@@ -98,6 +103,13 @@ def submit_leave_request(employee_id, start_date, end_date, leave_type, reason=N
     result = leave_requests.insert_one(leave_request)
     leave_request['_id'] = str(result.inserted_id)
     leave_request['employee_id'] = employee_id  # Return string version
+    
+    # Send notification to admin
+    try:
+        send_admin_leave_notification(leave_request, employee_info)
+    except Exception as e:
+        # Log the error but don't prevent the leave request from being created
+        print(f"Failed to send admin notification: {str(e)}")
     
     return leave_request
 
