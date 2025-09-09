@@ -79,8 +79,8 @@ def start_scheduler(app):
     scheduler.add_job(
         func=lambda: check_expiring_documents_with_context(app),
         trigger='cron',
-        hour=18,
-        minute=4,
+        hour=12,
+        minute=28,
         id="vehicle_docs_check"
     )
 
@@ -88,17 +88,17 @@ def start_scheduler(app):
     scheduler.add_job(
         func=lambda: notify_admins_about_expiring_licenses_with_context(app),
         trigger='cron',
-        hour=18,
-        minute=4,
+        hour=12,
+        minute=28,
         id="license_check"
     )
 
-    # Todo tasks expiry notifications (daily at 10:21 for testing)
+    # Todo tasks expiry notifications (daily at 12:21 for testing)
     scheduler.add_job(
         func=lambda: notify_due_tasks_with_context(app),
         trigger='cron',
-        hour=18,
-        minute=4,
+        hour=12,
+        minute=28,
         id="todo_due_check"
     )
 

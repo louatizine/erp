@@ -78,7 +78,7 @@ export default function LeaveRequestsTable() {
       setLeaveRequests(sortedLeaves);
     } catch (err) {
       console.error(err);
-      showSnackbar("Failed to fetch data", "error");
+      showSnackbar("Échec de la récupération des données", "error");
     } finally {
       setLoading(false);
     }
@@ -94,7 +94,7 @@ export default function LeaveRequestsTable() {
       const res = await axios.post(
         `http://localhost:5000/api/leave/approve/${requestId}`
       );
-      showSnackbar(res.data.message || "Leave approved", "success");
+      showSnackbar(res.data.message || "Congé approuvé", "success");
       fetchData();
     } catch (err) {
       showSnackbar(err.response?.data?.message || err.message, "error");
@@ -111,7 +111,7 @@ export default function LeaveRequestsTable() {
         `http://localhost:5000/api/leave/reject/${selectedRequestId}`,
         { rejection_reason: rejectionReason }
       );
-      showSnackbar(res.data.message || "Leave rejected", "success");
+      showSnackbar(res.data.message || "Congé rejeté", "success");
       fetchData();
     } catch (err) {
       showSnackbar(err.response?.data?.message || err.message, "error");
@@ -130,9 +130,9 @@ export default function LeaveRequestsTable() {
 
   const getStatusChip = (status) => {
     const config = {
-      pending: { color: "warning", label: "Pending" },
-      approved: { color: "success", label: "Approved" },
-      rejected: { color: "error", label: "Rejected" },
+      pending: { color: "warning", label: "En attente" },
+      approved: { color: "success", label: "Approuvé" },
+      rejected: { color: "error", label: "Rejeté" },
     };
     return (
       <Chip
@@ -144,11 +144,11 @@ export default function LeaveRequestsTable() {
     );
   };
 
-  const getCurrentRequest = (userId) => {
-    const requests = leaveRequests.filter((r) => r.employee_id === userId);
-    if (!requests.length) return null;
-    const pending = requests.find((r) => r.status === "pending");
-    return pending || requests[0];
+  // Get all pending requests for a user
+  const getPendingRequests = (userId) => {
+    return leaveRequests.filter(
+      (r) => r.employee_id === userId && r.status === "pending"
+    );
   };
 
   // Pagination logic
@@ -171,23 +171,23 @@ export default function LeaveRequestsTable() {
         <Grid container spacing={3} sx={{ mb: 4 }}>
           {[
             {
-              title: "Total Users",
+              title: "Utilisateurs totaux",
               value: totalUsers,
-              subtitle: `${adminCount} admins`,
+              subtitle: `${adminCount} administrateurs`,
               icon: <PersonIcon fontSize="large" />,
               bg: "linear-gradient(135deg,#3b82f6,#2563eb)",
             },
             {
-              title: "Pending Requests",
+              title: "Demandes en attente",
               value: pendingRequests,
-              subtitle: "Needs review",
+              subtitle: "Nécessite un examen",
               icon: <EventAvailable fontSize="large" />,
               bg: "linear-gradient(135deg,#f59e0b,#d97706)",
             },
             {
-              title: "Approved Requests",
+              title: "Demandes approuvées",
               value: approvedRequests,
-              subtitle: "This month",
+              subtitle: "Ce mois-ci",
               icon: <AdminPanelSettings fontSize="large" />,
               bg: "linear-gradient(135deg,#10b981,#059669)",
             },
@@ -245,23 +245,23 @@ export default function LeaveRequestsTable() {
           }}
         >
           <Typography variant="h6" fontWeight="bold" gutterBottom>
-            User Management
+            Gestion des utilisateurs
           </Typography>
           <TableContainer>
             <Table sx={{ minWidth: 650 }}>
               <TableHead>
                 <TableRow sx={{ backgroundColor: "#f3f4f6" }}>
-                  <TableCell>Name</TableCell>
+                  <TableCell>Nom</TableCell>
                   <TableCell>Email</TableCell>
-                  <TableCell>Role</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Leave Balance</TableCell>
-                  <TableCell>Current Request</TableCell>
+                  <TableCell>Rôle</TableCell>
+                  <TableCell>Statut</TableCell>
+                  <TableCell>Solde de congé</TableCell>
+                  <TableCell>Demandes en attente</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {paginatedUsers.map((user) => {
-                  const currentRequest = getCurrentRequest(user.id);
+                  const pendingRequests = getPendingRequests(user.id);
                   return (
                     <TableRow
                       key={user.id}
@@ -275,7 +275,7 @@ export default function LeaveRequestsTable() {
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
                         <Chip
-                          label={user.roles?.includes("admin") ? "Admin" : "User"}
+                          label={user.roles?.includes("admin") ? "Admin" : "Utilisateur"}
                           color={user.roles?.includes("admin") ? "primary" : "default"}
                           size="small"
                           sx={{ borderRadius: "16px" }}
@@ -283,7 +283,7 @@ export default function LeaveRequestsTable() {
                       </TableCell>
                       <TableCell>
                         <Chip
-                          label="Active"
+                          label="Actif"
                           color="success"
                           size="small"
                           sx={{ borderRadius: "16px" }}
@@ -306,41 +306,44 @@ export default function LeaveRequestsTable() {
                             />
                           </Box>
                           <Typography variant="body2">
-                            {user.leave_balance || 0} days
+                            {user.leave_balance || 0} jours
                           </Typography>
                         </Box>
                       </TableCell>
                       <TableCell>
-                        {currentRequest ? (
-                          currentRequest.status === "pending" ? (
-                            <Box sx={{ display: "flex", gap: 1 }}>
-                              <Button
-                                size="small"
-                                variant="contained"
-                                color="success"
-                                onClick={() => handleApprove(currentRequest._id)}
-                                disabled={actionLoadingId === currentRequest._id}
-                                sx={{ borderRadius: 2 }}
-                              >
-                                Approve
-                              </Button>
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                color="error"
-                                onClick={() => openRejectDialog(currentRequest._id)}
-                                disabled={actionLoadingId === currentRequest._id}
-                                sx={{ borderRadius: 2 }}
-                              >
-                                Reject
-                              </Button>
-                            </Box>
-                          ) : (
-                            getStatusChip(currentRequest.status)
-                          )
+                        {pendingRequests.length > 0 ? (
+                          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                            {pendingRequests.map((request) => (
+                              <Box key={request._id} sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                                <Typography variant="body2" sx={{ mr: 1 }}>
+                                  {request.leave_type} ({new Date(request.start_date).toLocaleDateString()} - {new Date(request.end_date).toLocaleDateString()})
+                                </Typography>
+                                <Button
+                                  size="small"
+                                  variant="contained"
+                                  color="success"
+                                  onClick={() => handleApprove(request._id)}
+                                  disabled={actionLoadingId === request._id}
+                                  sx={{ borderRadius: 2 }}
+                                >
+                                  Approuver
+                                </Button>
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  color="error"
+                                  onClick={() => openRejectDialog(request._id)}
+                                  disabled={actionLoadingId === request._id}
+                                  sx={{ borderRadius: 2 }}
+                                >
+                                  Rejeter
+                                </Button>
+                              </Box>
+                            ))}
+                          </Box>
                         ) : (
                           <Typography variant="body2" color="textSecondary">
-                            No requests
+                            Aucune demande
                           </Typography>
                         )}
                       </TableCell>
@@ -382,12 +385,12 @@ export default function LeaveRequestsTable() {
         onClose={closeRejectDialog}
         PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
       >
-        <DialogTitle>Reject Leave Request</DialogTitle>
+        <DialogTitle>Rejeter la demande de congé</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
             margin="dense"
-            label="Rejection Reason"
+            label="Motif du rejet"
             fullWidth
             multiline
             rows={4}
@@ -396,14 +399,14 @@ export default function LeaveRequestsTable() {
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={closeRejectDialog}>Cancel</Button>
+          <Button onClick={closeRejectDialog}>Annuler</Button>
           <Button
             onClick={handleReject}
             color="error"
             variant="contained"
             disabled={!rejectionReason.trim() || actionLoadingId === selectedRequestId}
           >
-            Reject
+            Rejeter
           </Button>
         </DialogActions>
       </Dialog>

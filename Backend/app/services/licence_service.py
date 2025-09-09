@@ -51,57 +51,59 @@ def get_admin_emails():
 # Scheduler functions (import mail only when needed to avoid circular imports)
 def notify_admins_about_expiring_licenses(app=None):
     """
-    Check for licenses that are about to expire (≤10 days left) and
-    send email notifications to all admin users.
-    Accepts optional app parameter for use outside Flask context.
+    Vérifie les licences sur le point d'expirer (≤10 jours restants) et
+    envoie des notifications par email à tous les administrateurs.
+    Accepte un paramètre app optionnel pour une utilisation en dehors du contexte Flask.
     """
-    # Import here to avoid circular imports
+    # Import ici pour éviter les imports circulaires
     from ..utils.mail import send_email
     
     collection = get_license_collection()
     today = datetime.now(timezone.utc)
 
-    # Licenses expiring within 10 days but not expired
+    # Licences expirant dans moins de 10 jours mais pas encore expirées
     expiring_licenses = list(collection.find({
         "status": "about_to_expire",
         "days_until_expiry": {"$lte": 10, "$gte": 0}
     }))
 
     if not expiring_licenses:
-        print("No expiring licenses found for notification")
+        print("Aucune licence sur le point d'expirer trouvée pour notification")
         return
 
     admin_emails = get_admin_emails()
     
     if not admin_emails:
-        print("No admin emails found for notification")
+        print("Aucun email administrateur trouvé pour notification")
         return
 
     for lic in expiring_licenses:
-        subject = f"⚠️ License Expiry Alert: {lic.get('license_name', 'Unknown')}"
+        subject = f"⚠️ Alerte d'Expiration de Licence: {lic.get('license_name', 'Inconnue')}"
         expiry_date = lic["expiry_date"]
 
         if isinstance(expiry_date, datetime):
-            expiry_date = expiry_date.strftime("%Y-%m-%d")
+            expiry_date = expiry_date.strftime("%d/%m/%Y")
 
         body = f"""
-        Dear Admin,
+        Cher Administrateur,
 
-        The license "{lic.get('license_name', 'Unknown')}" with key {lic.get('license_key')} 
-        will expire on {expiry_date} (in {lic.get('days_until_expiry')} days).
+        La licence "{lic.get('license_name', 'Inconnue')}" avec la clé {lic.get('license_key')} 
+        expirera le {expiry_date} (dans {lic.get('days_until_expiry')} jours).
 
-        Please take necessary action.
+        Veuillez prendre les mesures nécessaires.
 
-        Regards,
-        License Management System
+        Cordialement,
+        Système de Gestion des Licences
         """
 
         for email in admin_emails:
-            # Pass the app parameter if provided
+            # Passe le paramètre app s'il est fourni
             if app:
                 send_email(email, subject, body, app)
             else:
                 send_email(email, subject, body)
+
+
 
 def start_scheduler():
     scheduler = BackgroundScheduler()

@@ -28,6 +28,7 @@ import {
   Grid,
   useMediaQuery,
   useTheme,
+  TablePagination, // Added import
 } from "@mui/material";
 import { Unarchive, Delete, Upload, Download } from "@mui/icons-material";
 import axios from "axios";
@@ -52,14 +53,17 @@ export default function DocumentArchive() {
   const [loading, setLoading] = useState(false);
   const [archivedDocs, setArchivedDocs] = useState([]);
   const [openUpload, setOpenUpload] = useState(false);
-
   const [openDelete, setOpenDelete] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [openRetentionConfirm, setOpenRetentionConfirm] = useState(false);
   const [retentionUntil, setRetentionUntil] = useState(null);
-
   const [departments] = useState(["HR", "Finance", "Legal", "IT"]);
   const { enqueueSnackbar } = useSnackbar();
+
+  // Pagination state
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [totalDocs, setTotalDocs] = useState(0);
 
   const [uploadData, setUploadData] = useState({
     title: "",
@@ -70,12 +74,13 @@ export default function DocumentArchive() {
     newTag: "",
   });
 
-  // Fetch archived documents
-  const fetchArchived = async () => {
+  // Fetch archived documents with pagination
+  const fetchArchived = async (page = 0, limit = rowsPerPage) => {
     setLoading(true);
     try {
-      const response = await api.get("/documents/archived");
-      setArchivedDocs(response.data);
+      const response = await api.get(`/documents/archived?page=${page + 1}&limit=${limit}`);
+      setArchivedDocs(response.data.documents || response.data);
+      setTotalDocs(response.data.totalCount || response.data.length);
     } catch (err) {
       const errorMessage = err?.response?.data?.error || err.message;
       enqueueSnackbar(`Failed to load documents: ${errorMessage}`, {
@@ -84,6 +89,20 @@ export default function DocumentArchive() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle page change
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+    fetchArchived(newPage, rowsPerPage);
+  };
+
+  // Handle rows per page change
+  const handleChangeRowsPerPage = (event) => {
+    const newRowsPerPage = parseInt(event.target.value, 10);
+    setRowsPerPage(newRowsPerPage);
+    setPage(0);
+    fetchArchived(0, newRowsPerPage);
   };
 
   // Upload document
@@ -105,7 +124,7 @@ export default function DocumentArchive() {
         headers: { "Content-Type": "multipart/form-data" },
       });
       enqueueSnackbar("Document archived successfully", { variant: "success" });
-      fetchArchived();
+      fetchArchived(page, rowsPerPage);
       setOpenUpload(false);
       setUploadData({
         title: "",
@@ -126,7 +145,7 @@ export default function DocumentArchive() {
     try {
       await api.post(`/documents/${id}/unarchive`);
       enqueueSnackbar("Document restored", { variant: "success" });
-      fetchArchived();
+      fetchArchived(page, rowsPerPage);
     } catch (err) {
       const errorMessage = err?.response?.data?.error || err.message;
       enqueueSnackbar(`Failed to restore document: ${errorMessage}`, {
@@ -147,7 +166,7 @@ export default function DocumentArchive() {
     try {
       await api.delete(`/documents/${selectedDoc.id}`);
       enqueueSnackbar("Document deleted", { variant: "success" });
-      fetchArchived();
+      fetchArchived(page, rowsPerPage);
       setOpenDelete(false);
       setSelectedDoc(null);
     } catch (err) {
@@ -171,7 +190,7 @@ export default function DocumentArchive() {
     try {
       await api.delete(`/documents/${selectedDoc.id}?force=true`);
       enqueueSnackbar("Document force deleted", { variant: "warning" });
-      fetchArchived();
+      fetchArchived(page, rowsPerPage);
     } catch (err) {
       const errorMessage = err?.response?.data?.error || err.message;
       enqueueSnackbar(`Force delete failed: ${errorMessage}`, {
@@ -230,7 +249,7 @@ export default function DocumentArchive() {
   };
 
   useEffect(() => {
-    fetchArchived();
+    fetchArchived(page, rowsPerPage);
   }, []);
 
   return (
@@ -557,6 +576,26 @@ export default function DocumentArchive() {
                   </TableBody>
                 </Table>
               </TableContainer>
+              
+              {/* Pagination Component */}
+              <TablePagination
+                rowsPerPageOptions={[5, 10, 25, 50]}
+                component="div"
+                count={totalDocs}
+                rowsPerPage={rowsPerPage}
+                page={page}
+                onPageChange={handleChangePage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+                sx={{
+                  borderTop: "1px solid #e2e8f0",
+                  "& .MuiTablePagination-toolbar": {
+                    padding: "16px",
+                  },
+                  "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
+                    marginBottom: 0,
+                  },
+                }}
+              />
             </Paper>
           )}
 

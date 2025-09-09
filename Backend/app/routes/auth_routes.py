@@ -63,6 +63,9 @@ def register():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+
+
 @auth_bp.route('/login', methods=['POST'])
 def login():
     try:

@@ -108,15 +108,44 @@ def create_license():
         logger.error(f"Error creating license: {str(e)}")
         return jsonify({"error": "Internal server error"}), 500
 
+
+
+
+#####
+
 @license_bp.route("/", methods=["GET"])
 def get_all_licenses():
     try:
         collection = get_license_collection()
         all_licenses = list(collection.find().sort("expiry_date", 1))
         
-        # Convert ObjectId and format dates
+        # Convert ObjectId and format dates + update status
         for lic in all_licenses:
             lic["_id"] = str(lic["_id"])
+            
+            # Recalculate status for each license
+            if isinstance(lic["expiry_date"], datetime):
+                expiry_date = lic["expiry_date"]
+                if expiry_date.tzinfo is None:
+                    expiry_date = expiry_date.replace(tzinfo=timezone.utc)
+                
+                # Calculate current status
+                status, days_left = calculate_license_status(expiry_date)
+                
+                # Update the license status if it has changed
+                if lic.get("status") != status:
+                    collection.update_one(
+                        {"_id": lic["_id"]},
+                        {"$set": {
+                            "status": status,
+                            "days_until_expiry": days_left,
+                            "last_updated": datetime.now(timezone.utc)
+                        }}
+                    )
+                    lic["status"] = status
+                    lic["days_until_expiry"] = days_left
+            
+            # Format date for response
             if isinstance(lic["expiry_date"], datetime):
                 lic["expiry_date"] = lic["expiry_date"].isoformat()
         
@@ -124,6 +153,13 @@ def get_all_licenses():
     except Exception as e:
         logger.error(f"Error fetching all licenses: {str(e)}")
         return jsonify({"error": "Internal server error"}), 500
+
+###
+
+
+
+
+
 
 @license_bp.route("/expiring", methods=["GET"])
 def get_expiring_count():

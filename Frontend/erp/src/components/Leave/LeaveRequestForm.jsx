@@ -93,47 +93,54 @@ const LeaveRequestForm = () => {
     return (end - start) / (1000 * 60 * 60 * 24) + 1;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateForm()) return;
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!validateForm()) return;
 
-    const leaveDays = calculateLeaveDays();
+  const leaveDays = calculateLeaveDays();
 
-    if (leaveBalance !== null && leaveDays > leaveBalance && !pendingSubmission) {
-      setShowConfirmDialog(true);
-      return;
+  if (leaveBalance !== null && leaveDays > leaveBalance && !pendingSubmission) {
+    setShowConfirmDialog(true);
+    return;
+  }
+
+  setIsSubmitting(true);
+  setSubmitError('');
+
+  try {
+    const formPayload = new FormData();
+    formPayload.append('employee_id', user.id);
+    formPayload.append('leave_type', formData.leaveType);
+    formPayload.append('start_date', formData.startDate);
+    formPayload.append('end_date', formData.endDate);
+    formPayload.append('reason', formData.reason);
+    if (formData.document) {
+      formPayload.append('document', formData.document);
     }
 
-    setIsSubmitting(true);
-    setSubmitError('');
+    await axios.post('/api/leave/request', formPayload, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        Authorization: `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
 
-    try {
-      const formPayload = new FormData();
-      formPayload.append('employee_id', user.id);
-      formPayload.append('leave_type', formData.leaveType);
-      formPayload.append('start_date', formData.startDate);
-      formPayload.append('end_date', formData.endDate);
-      formPayload.append('reason', formData.reason);
-      if (formData.document) {
-        formPayload.append('document', formData.document);
-      }
-
-      await axios.post('/api/leave/request', formPayload, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
-
-      setSubmitSuccess(true);
-      setTimeout(() => navigate('/leave'), 2000);
-    } catch (error) {
-      setSubmitError(error.response?.data?.message || 'Échec de la soumission de la demande de congé');
-    } finally {
-      setIsSubmitting(false);
-      setPendingSubmission(false);
+    // ✅ Update solde localement après une demande réussie
+    if (leaveBalance !== null) {
+      setLeaveBalance((prev) => Math.max(prev - leaveDays, 0));
     }
-  };
+
+    setSubmitSuccess(true);
+    setTimeout(() => navigate('/leave/personal'), 2000);
+  } catch (error) {
+    setSubmitError(
+      error.response?.data?.message || 'Échec de la soumission de la demande de congé'
+    );
+  } finally {
+    setIsSubmitting(false);
+    setPendingSubmission(false);
+  }
+};
 
   const handleConfirmDialogClose = (proceed) => {
     setShowConfirmDialog(false);
@@ -165,7 +172,7 @@ const LeaveRequestForm = () => {
 
       {leaveBalance !== null && (
         <Alert severity="info" sx={{ mb: 4, fontWeight: 600 }}>
-          Votre solde actuel de congés : {leaveBalance} jour{leaveBalance !== 1 ? 's' : ''}
+            Votre solde actuel de congés : {leaveBalance} jour{leaveBalance !== 1 ? 's' : ''}
         </Alert>
       )}
 

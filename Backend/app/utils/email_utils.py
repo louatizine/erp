@@ -20,14 +20,14 @@ def send_email(to, subject, body):
         return False
 
 def check_due_tasks(app):
-    """Check tasks due soon or overdue and send notifications"""
+    """Vérifie les tâches bientôt dues ou en retard et envoie des notifications"""
     with app.app_context():
         now = datetime.now(timezone.utc)
         soon_24h = now + timedelta(hours=24)
 
-        current_app.logger.info(f"🔍 Checking due tasks: now={now}, soon_24h={soon_24h}")
+        current_app.logger.info(f"🔍 Vérification des tâches : maintenant={now}, bientôt_24h={soon_24h}")
 
-        # Query for tasks due soon or overdue
+        # Requête pour les tâches bientôt dues ou en retard
         query = {
             "$or": [
                 {"due_date": {"$lte": soon_24h, "$gte": now}, "status": "pending"},
@@ -36,19 +36,19 @@ def check_due_tasks(app):
         }
 
         tasks = list(get_todo_collection().find(query))
-        current_app.logger.info(f"📋 Found {len(tasks)} tasks due soon or overdue")
+        current_app.logger.info(f"📋 {len(tasks)} tâche(s) trouvée(s) bientôt dues ou en retard")
 
         for i, task in enumerate(tasks):
             due_date = task.get("due_date")
 
-            # Convert naive datetime to UTC if necessary
+            # Convertir en UTC si datetime naïf
             if due_date.tzinfo is None:
                 due_date = due_date.replace(tzinfo=timezone.utc)
 
-            status = "OVERDUE" if due_date < now else "DUE SOON"
-            current_app.logger.info(f"   Task {i+1}: '{task['title']}' - {status} - due at {due_date}")
+            status = "EN RETARD" if due_date < now else "À ÉCHÉANCE BIENTÔT"
+            current_app.logger.info(f"   Tâche {i+1}: '{task['title']}' - {status} - échéance {due_date}")
 
-        # Send emails
+        # Envoi des emails
         for task in tasks:
             recipient = app.config.get("ADMIN_EMAIL", "admin@example.com")
             due_date = task.get("due_date")
@@ -56,23 +56,23 @@ def check_due_tasks(app):
                 due_date = due_date.replace(tzinfo=timezone.utc)
 
             if due_date < now:
-                subject = f"URGENT: Task '{task['title']}' is OVERDUE!"
-                time_status = f"was due on {due_date.strftime('%Y-%m-%d %H:%M')} (OVERDUE)"
+                subject = f"URGENT : La tâche '{task['title']}' est EN RETARD !"
+                time_status = f"devait être terminée le {due_date.strftime('%Y-%m-%d %H:%M')} (EN RETARD)"
             else:
-                subject = f"Reminder: Task '{task['title']}' is due soon"
-                time_status = f"is due on {due_date.strftime('%Y-%m-%d %H:%M')}"
+                subject = f"Rappel : La tâche '{task['title']}' est bientôt à échéance"
+                time_status = f"est à rendre le {due_date.strftime('%Y-%m-%d %H:%M')}"
 
             body = (
-                f"Hello,\n\n"
-                f"Your task '{task['title']}' {time_status}.\n"
-                f"Please complete it as soon as possible.\n\n"
-                f"Best regards"
+                f"Bonjour,\n\n"
+                f"Votre tâche '{task['title']}' {time_status}.\n"
+                f"Merci de la compléter dès que possible.\n\n"
+                f"Cordialement"
             )
 
-            current_app.logger.info(f"📨 Attempting to send notification for: {task['title']}")
+            current_app.logger.info(f"📨 Tentative d'envoi de notification pour : {task['title']}")
             success = send_email(recipient, subject, body)
 
             if success:
-                current_app.logger.info(f"✅ Notification sent for: {task['title']}")
+                current_app.logger.info(f"✅ Notification envoyée pour : {task['title']}")
             else:
-                current_app.logger.error(f"❌ Failed to send notification for: {task['title']}")
+                current_app.logger.error(f"❌ Échec d'envoi de la notification pour : {task['title']}")

@@ -25,6 +25,9 @@ function LoginForm() {
     const result = await login(formData);
     setLoading(false);
 
+    // ⚡ clear password after submit for security
+    setFormData((prev) => ({ ...prev, password: '' }));
+
     if (result.success) {
       // Redirect based on role
       if (result.user?.roles?.includes('admin')) {
@@ -124,6 +127,7 @@ function LoginForm() {
             onChange={handleChange}
             margin="normal"
             required
+            autoComplete="current-password"
             sx={{
               '& .MuiOutlinedInput-root': {
                 borderRadius: 2,

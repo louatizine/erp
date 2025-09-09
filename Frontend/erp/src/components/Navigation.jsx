@@ -33,7 +33,7 @@ import {
   WorkHistoryOutlined as LeaveManageIcon,
 } from "@mui/icons-material";
 import { useAuth } from "./Auth/AuthContext";
-import dynamixLogo from "../assets/dynamix.jpg";
+import dynamixLogo from "../assets/dynamix-removebg-preview.png";
 
 // ------------------- Styled Components -------------------
 const StyledDrawer = styled(Drawer)(({ theme }) => ({

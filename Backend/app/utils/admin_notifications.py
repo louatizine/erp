@@ -3,53 +3,53 @@ from flask_mail import Message, Mail
 from datetime import datetime
 
 def send_admin_leave_notification(leave_request, employee_info):
-    """Send email notification to admin about new leave request"""
+    """Envoyer une notification par email à l'administrateur concernant une nouvelle demande de congé"""
     mail = current_app.extensions.get('mail')
     if not mail:
-        current_app.logger.error("Mail extension not initialized")
+        current_app.logger.error("Extension mail non initialisée")
         return False
 
-    admin_email = current_app.config.get('ADMIN_EMAIL')  # Get admin email from config
+    admin_email = current_app.config.get('ADMIN_EMAIL')  # Récupérer l'email admin depuis la config
     if not admin_email:
-        current_app.logger.error("Admin email not configured")
+        current_app.logger.error("Email administrateur non configuré")
         return False
 
-    # Format dates
+    # Formater les dates
     start_date = (
-        leave_request['start_date'].strftime('%Y-%m-%d')
+        leave_request['start_date'].strftime('%d/%m/%Y')
         if isinstance(leave_request['start_date'], datetime)
         else leave_request['start_date']
     )
     end_date = (
-        leave_request['end_date'].strftime('%Y-%m-%d')
+        leave_request['end_date'].strftime('%d/%m/%Y')
         if isinstance(leave_request['end_date'], datetime)
         else leave_request['end_date']
     )
 
-    # Create email subject and body
-    subject = f"New Leave Request from {employee_info.get('name', 'Employee')}"
+    # Créer le sujet et le corps de l'email
+    subject = f"Nouvelle Demande de Congé de {employee_info.get('name', 'Un Employé')}"
 
     body = f"""
-    Dear Admin,
+    Cher Administrateur,
 
-    A new leave request has been submitted and requires your attention.
+    Une nouvelle demande de congé a été soumise et nécessite votre attention.
 
-    👤 Employee Details:
-    - Name: {employee_info.get('name', 'N/A')}
-    - Email: {employee_info.get('email', 'N/A')}
-    - Department: {employee_info.get('department', 'N/A')}
+    👤 Détails de l'Employé:
+    - Nom: {employee_info.get('name', 'Non disponible')}
+    - Email: {employee_info.get('email', 'Non disponible')}
+    # - Département: {employee_info.get('department', 'Non disponible')}
 
-    📅 Leave Request Details:
-    - Leave Type: {leave_request['leave_type'].capitalize()}
-    - Start Date: {start_date}
-    - End Date: {end_date}
-    - Total Days: {leave_request.get('leave_days', 'N/A')}
-    - Reason: {leave_request.get('reason', 'No reason provided')}
+    📅 Détails de la Demande de Congé:
+    - Type de Congé: {leave_request['leave_type'].capitalize()}
+    - Date de Début: {start_date}
+    - Date de Fin: {end_date}
+    - Nombre Total de Jours: {leave_request.get('leave_days', 'Non disponible')}
+    - Motif: {leave_request.get('reason', 'Aucun motif fourni')}
 
-    Please review this request at your earliest convenience.
+    Veuillez examiner cette demande dès que possible.
 
-    Best regards,
-    HR System
+    Cordialement,
+    Dynamix services
     """
 
     try:
@@ -62,5 +62,5 @@ def send_admin_leave_notification(leave_request, employee_info):
         mail.send(msg)
         return True
     except Exception as e:
-        current_app.logger.error(f"Failed to send admin notification: {str(e)}")
+        current_app.logger.error(f"Échec de l'envoi de la notification admin: {str(e)}")
         return False

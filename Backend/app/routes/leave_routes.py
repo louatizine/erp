@@ -98,9 +98,16 @@ def create_leave_request():
             "success": False,
             "message": str(e)
         }), 400
+        
+        
+        
+        
 
 @leave_bp.route("/approve/<request_id>", methods=["POST"])
 def approve_request(request_id):
+    
+    
+    
     try:
         leave_requests = get_leave_collection()
         employees = get_employee_collection()
@@ -136,6 +143,11 @@ def approve_request(request_id):
             
         employee_email = employee.get('email')
 
+        # Calculate leave days
+        start_date = leave_request['start_date']
+        end_date = leave_request['end_date']
+        leave_days = (end_date - start_date).days + 1
+
         # Update leave request
         result = leave_requests.update_one(
             {"_id": request_obj_id},
@@ -151,6 +163,14 @@ def approve_request(request_id):
                 "success": False,
                 "message": "No changes made to leave request"
             }), 400
+
+        # Update employee's leave balance (only for paid leave types)
+        if leave_request['leave_type'] == 'vacation':  # Add other paid leave types as needed
+            new_balance = employee.get('leave_balance', 0) - leave_days
+            employees.update_one(
+                {"_id": leave_request['employee_id']},
+                {"$set": {"leave_balance": new_balance}}
+            )
 
         updated_request = leave_requests.find_one({"_id": request_obj_id})
         
@@ -178,44 +198,10 @@ def approve_request(request_id):
             "success": False,
             "message": str(e)
         }), 500
-    try:
-        leave_requests = get_leave_collection()
-        
-        try:
-            request_obj_id = ObjectId(request_id)
-        except:
-            raise Exception("Invalid leave request ID format")
 
-        leave_request = leave_requests.find_one({"_id": request_obj_id})
-        if not leave_request:
-            raise Exception("Leave request not found")
 
-        if leave_request['status'] != 'pending':
-            raise Exception(f"Leave request already {leave_request['status']}")
 
-        result = leave_requests.update_one(
-            {"_id": request_obj_id},
-            {"$set": {
-                "status": "approved",
-                "updated_at": datetime.utcnow(),
-                "processed_by": ObjectId(request.headers.get('X-User-Id'))
-            }}
-        )
-        
-        if result.modified_count == 0:
-            raise Exception("No changes made to leave request")
 
-        updated_request = leave_requests.find_one({"_id": request_obj_id})
-        return jsonify({
-            "success": True,
-            "message": "Leave request approved successfully",
-            "data": serialize_leave_request(updated_request)
-        })
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": str(e)
-        }), 400
 
 @leave_bp.route("/employee/<employee_id>", methods=["GET"])
 def get_employee_requests(employee_id):
